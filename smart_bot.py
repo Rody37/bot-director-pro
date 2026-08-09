@@ -47,7 +47,6 @@ def get_imbalance(symbol):
 
 
 def generar_reporte_director():
-def generar_reporte_director():
   if not TELEGRAM_TOKEN or not CHAT_ID:
     print("Faltan las credenciales de Telegram.")
     return
@@ -94,54 +93,9 @@ def generar_reporte_director():
         url,
         json={"chat_id": CHAT_ID, "text": mensaje, "parse_mode": "Markdown"},
     )
-    print("Respuesta de Telegram:", respuesta.text)  # <--- Esto nos dirá el secreto en los logs
+    print("Respuesta de Telegram:", respuesta.text)
   except Exception as e:
     print(f"Error crítico en reporte: {e}")
-
-  ahora = datetime.now().strftime("%d/%m/%Y · %H:%M hs")
-  sesion, insight = get_market_session()
-
-  try:
-    data = requests.get(
-        "https://api.binance.com/api/v3/ticker/price", timeout=5
-    ).json()
-    btc_price = float(
-        next(item for item in data if item["symbol"] == "BTCUSDT")["price"]
-    )
-    eth_price = float(
-        next(item for item in data if item["symbol"] == "ETHUSDT")["price"]
-    )
-
-    res_btc, sop_btc = round(btc_price * 1.005, -2), round(
-        btc_price * 0.995, -2
-    )
-    res_eth, sop_eth = round(eth_price * 1.01, -2), round(eth_price * 0.99, -2)
-
-    mensaje = (
-        f"📰 **MERCADO AHORA — {ahora}**\n\n"
-        f"📍 *Sesión activa:* {sesion}\n"
-        f"🧠 *Análisis:* {insight}\n\n"
-        f"🔍 **BTC (Bitcoin)**\n"
-        f"Precio: ${btc_price:,.0f}\n"
-        f"⚖️ FVG: {get_imbalance('BTCUSDT')}\n"
-        f"🎯 Si no aguanta ~${sop_btc:,.0f}, buscamos liquidez abajo.\n\n"
-        f"🔍 **ETH (Ethereum)**\n"
-        f"Precio: ${eth_price:,.0f}\n"
-        f"⚖️ FVG: {get_imbalance('ETHUSDT')}\n"
-        f"🎯 Si no aguanta ~${sop_eth:,.0f}, buscamos liquidez abajo.\n\n"
-        f"📊 **Niveles clave**\n"
-        f"🔴 BTC Res: ${res_btc:,.0f} · ETH Res: ${res_eth:,.0f}\n"
-        f"🟢 BTC Sop: ${sop_btc:,.0f} · ETH Sop: ${sop_eth:,.0f}\n\n"
-        f"🤖 *Reporte generado por IA — Gestión de riesgo obligatoria*"
-    )
-
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    requests.post(
-        url,
-        json={"chat_id": CHAT_ID, "text": mensaje, "parse_mode": "Markdown"},
-    )
-  except Exception as e:
-    print(f"Error en reporte: {e}")
 
 
 def bot_loop():
