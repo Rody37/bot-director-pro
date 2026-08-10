@@ -1,83 +1,3 @@
-import os
-import threading
-import time
-import random
-from datetime import datetime, timezone, timedelta
-import requests
-from flask import Flask
-
-app = Flask(__name__)
-
-# --- CONFIGURACIÓN ---
-TELEGRAM_TOKEN = "8944132671:AAEZR2CcxNM1-Qj-Hh5ApEWmdkR0eB_afrs"
-CHAT_ID = "8982812050"
-
-# Radar de Élite: Majors + Activos de alta liquidez + Proyectos de alto potencial
-TRACKED_SYMBOLS = [
-    "BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", 
-    "XRPUSDT", "ADAUSDT", "LINKUSDT", 
-    "TAOUSDT", "HYPEUSDT", "BANANAUSDT"
-]
-last_prices = {symbol: 0.0 for symbol in TRACKED_SYMBOLS}
-
-# Umbral de movimiento fuerte (0.8% para el Radar de Élite)
-THRESHOLD = 0.008 
-
-# Toque secreto del Director
-SECRET_VIBES = [
-    "🧠 Mentalidad: El dinero se hace en la paciencia, no en la pantalla.",
-    "🎯 Regla de oro: Respeta tu plan, el mercado no tiene sentimientos.",
-    "⚡ Psicología: Las grandes ganancias van para el que sabe esperar el retroceso.",
-    "🛡️ Gestión: Un buen trader sobrevive para operar el día de maÃ±ana.",
-    "🔥 Filosofía: Caza los imbalances como un francotirador."
-]
-
-@app.route("/")
-def home():
-    return "Bot Director Pro Activo 24/7 (Radar Élite + Reportes cada 1 Hora + Modo Secreto) 🚀"
-
-def get_market_prices():
-    try:
-        data = requests.get("https://api.binance.com/api/v3/ticker/price", timeout=5).json()
-        prices = {}
-        for item in data:
-            if item["symbol"] in TRACKED_SYMBOLS:
-                prices[item["symbol"]] = float(item["price"])
-        return prices
-    except:
-        return {}
-
-def check_session_alert():
-    target_hours = [0, 8, 13]
-    now = datetime.now(timezone.utc)
-    future = now + timedelta(minutes=20)
-    
-    if future.hour in target_hours and future.minute < 5:
-        return True, "PRE-APERTURA"
-    return False, ""
-
-def generar_reporte(razon, prices_dict):
-    ahora = datetime.now(timezone.utc).strftime("%H:%M UTC")
-    vibe_secreto = random.choice(SECRET_VIBES)
-    
-    precios_txt = ""
-    for sym in TRACKED_SYMBOLS:
-        val = prices_dict.get(sym, 0)
-        if val > 0:
-            nombre = sym.replace("USDT", "")
-            precios_txt += f"• {nombre}: ${val:,.2f}\n"
-
-    mensaje = (
-        f"🚨 **ALERTA DEL DIRECTOR — {razon}**\n\n"
-        f"⏰ *Hora:* {ahora}\n\n"
-        f"📈 **Radar de Élite:**\n{precios_txt}\n"
-        f"{vibe_secreto}\n\n"
-        f"🤖 *¡Atentos a la acción del precio!*"
-    )
-
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    requests.post(url, json={"chat_id": CHAT_ID, "text": mensaje, "parse_mode": "Markdown"})
-
 def bot_loop():
     print("🤖 Hilo del Bot Centinela 'Élite' Activo...")
     
@@ -88,20 +8,22 @@ def bot_loop():
 
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        mensaje_inicio = "🤖 **¡Bot Director Pro Activo!** Sistema actualizado con toque especial integrado. 🚀"
+        mensaje_inicio = "🤖 **¡Bot Director Pro Activo!** Sistema actualizado con control por reloj real. 🚀"
         requests.post(url, json={"chat_id": CHAT_ID, "text": mensaje_inicio, "parse_mode": "Markdown"})
         print("Mensaje de inicio enviado a Telegram.")
     except Exception as e:
         print(f"Error enviando mensaje de inicio: {e}")
 
-    contador_minutos = 0
+    # Control de tiempo real (3600 segundos = 1 hora)
+    # *Nota: Si quieres probar que los reportes llegan rápido, puedes cambiar temporalmente 3600 por 300 (5 minutos)*
+    ultimo_reporte = time.time()
+    INTERVALO_REPORTE = 3600 
 
     while True:
         try:
             current_prices = get_market_prices()
             if not current_prices:
-                time.sleep(60)
-                contador_minutos += 1
+                time.sleep(30)
                 continue
 
             alerta_disparada = False
@@ -123,28 +45,20 @@ def bot_loop():
                 for sym in TRACKED_SYMBOLS:
                     if sym in current_prices:
                         last_prices[sym] = current_prices[sym]
-                contador_minutos = 0
+                ultimo_reporte = time.time()
 
             is_opening, razon = check_session_alert()
             if is_opening:
                 generar_reporte(f"APERTURA DE MERCADO EN 20 MIN", current_prices)
-                time.sleep(3600)
-                contador_minutos = 0
+                ultimo_reporte = time.time()
 
-            contador_minutos += 1
-            if contador_minutos >= 60:
+            # Verificación por tiempo real transcurrido
+            if time.time() - ultimo_reporte >= INTERVALO_REPORTE:
                 generar_reporte("REPORTE PERIÓDICO DE RUTINA (CADA 1 HORA)", current_prices)
-                contador_minutos = 0
+                ultimo_reporte = time.time()
 
-            time.sleep(60)
+            time.sleep(30)
         except Exception as e:
             print(f"Error en bucle: {e}")
-            time.sleep(60)
+            time.sleep(30)
 
-if __name__ == "__main__":
-    t = threading.Thread(target=bot_loop)
-    t.daemon = True
-    t.start()
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
