@@ -112,6 +112,12 @@ if __name__ == "__main__":
   TELEGRAM_TOKEN = os.environ.get("8944132671:AAEZR2CcxNM1-Qj-Hh5ApEWmdkR0eB_afrs")
 CHAT_ID = os.environ.get("8982812050")
   t.start()
+def bot_loop():
+  print("🤖 Hilo del Bot Director Activo...")
+  time.sleep(60)  # Espera 1 minuto al arrancar
+  while True:
+    generar_reporte_director()
+    time.sleep(14400)  # Espera 4 horas (14400 segundos) entre reporte y reporte
 
   port = int(os.environ.get("PORT", 10000))
   app.run(host="0.0.0.0", port=port)
