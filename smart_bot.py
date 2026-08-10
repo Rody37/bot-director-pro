@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+import random
 from datetime import datetime, timezone, timedelta
 import requests
 from flask import Flask
@@ -22,9 +23,18 @@ last_prices = {symbol: 0.0 for symbol in TRACKED_SYMBOLS}
 # Umbral de movimiento fuerte (0.8% para el Radar de Élite)
 THRESHOLD = 0.008 
 
+# Toque secreto del Director
+SECRET_VIBES = [
+    "🧠 Mentalidad: El dinero se hace en la paciencia, no en la pantalla.",
+    "🎯 Regla de oro: Respeta tu plan, el mercado no tiene sentimientos.",
+    "⚡ Psicología: Las grandes ganancias van para el que sabe esperar el retroceso.",
+    "🛡️ Gestión: Un buen trader sobrevive para operar el día de maÃ±ana.",
+    "🔥 Filosofía: Caza los imbalances como un francotirador."
+]
+
 @app.route("/")
 def home():
-    return "Bot Director Pro Activo 24/7 (Radar Élite + Alerta de Arranque) 🚀"
+    return "Bot Director Pro Activo 24/7 (Radar Élite + Reportes cada 1 Hora + Modo Secreto) 🚀"
 
 def get_market_prices():
     try:
@@ -48,6 +58,7 @@ def check_session_alert():
 
 def generar_reporte(razon, prices_dict):
     ahora = datetime.now(timezone.utc).strftime("%H:%M UTC")
+    vibe_secreto = random.choice(SECRET_VIBES)
     
     precios_txt = ""
     for sym in TRACKED_SYMBOLS:
@@ -60,6 +71,7 @@ def generar_reporte(razon, prices_dict):
         f"🚨 **ALERTA DEL DIRECTOR — {razon}**\n\n"
         f"⏰ *Hora:* {ahora}\n\n"
         f"📈 **Radar de Élite:**\n{precios_txt}\n"
+        f"{vibe_secreto}\n\n"
         f"🤖 *¡Atentos a la acción del precio!*"
     )
 
@@ -69,32 +81,32 @@ def generar_reporte(razon, prices_dict):
 def bot_loop():
     print("🤖 Hilo del Bot Centinela 'Élite' Activo...")
     
-    # Inicializar precios
     initial_prices = get_market_prices()
     for sym in TRACKED_SYMBOLS:
         if sym in initial_prices:
             last_prices[sym] = initial_prices[sym]
 
-    # Mensaje de prueba inmediato al arrancar
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        mensaje_inicio = "🤖 **¡Bot Director Pro Activo!** Estoy alerta 24/7 vigilando el Radar de Élite. 🚀"
+        mensaje_inicio = "🤖 **¡Bot Director Pro Activo!** Sistema actualizado con toque especial integrado. 🚀"
         requests.post(url, json={"chat_id": CHAT_ID, "text": mensaje_inicio, "parse_mode": "Markdown"})
         print("Mensaje de inicio enviado a Telegram.")
     except Exception as e:
         print(f"Error enviando mensaje de inicio: {e}")
+
+    contador_minutos = 0
 
     while True:
         try:
             current_prices = get_market_prices()
             if not current_prices:
                 time.sleep(60)
+                contador_minutos += 1
                 continue
 
             alerta_disparada = False
             razon_alerta = ""
             
-            # Vigilar saltos de precio
             for sym, price in current_prices.items():
                 old_price = last_prices.get(sym, price)
                 if old_price > 0:
@@ -111,12 +123,18 @@ def bot_loop():
                 for sym in TRACKED_SYMBOLS:
                     if sym in current_prices:
                         last_prices[sym] = current_prices[sym]
+                contador_minutos = 0
 
-            # Vigilar aperturas
             is_opening, razon = check_session_alert()
             if is_opening:
                 generar_reporte(f"APERTURA DE MERCADO EN 20 MIN", current_prices)
                 time.sleep(3600)
+                contador_minutos = 0
+
+            contador_minutos += 1
+            if contador_minutos >= 60:
+                generar_reporte("REPORTE PERIÓDICO DE RUTINA (CADA 1 HORA)", current_prices)
+                contador_minutos = 0
 
             time.sleep(60)
         except Exception as e:
