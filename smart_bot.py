@@ -109,6 +109,8 @@ def bot_loop():
 if __name__ == "__main__":
   t = threading.Thread(target=bot_loop)
   t.daemon = True
+  TELEGRAM_TOKEN = os.environ.get("8944132671:AAEZR2CcxNM1-Qj-Hh5ApEWmdkR0eB_afrs")
+CHAT_ID = os.environ.get("8982812050")
   t.start()
 
   port = int(os.environ.get("PORT", 10000))
