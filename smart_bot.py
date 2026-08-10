@@ -24,11 +24,10 @@ THRESHOLD = 0.008
 
 @app.route("/")
 def home():
-    return "Bot Director Pro Activo 24/7 (Radar Élite + TAO/HYPE/BANANA) 🚀"
+    return "Bot Director Pro Activo 24/7 (Radar Élite + Alerta de Arranque) 🚀"
 
 def get_market_prices():
     try:
-        # Consultamos la API de Binance
         data = requests.get("https://api.binance.com/api/v3/ticker/price", timeout=5).json()
         prices = {}
         for item in data:
@@ -53,7 +52,6 @@ def generar_reporte(razon, prices_dict):
     precios_txt = ""
     for sym in TRACKED_SYMBOLS:
         val = prices_dict.get(sym, 0)
-        # Solo mostramos si tenemos precio (por si algún ticker no está en Binance)
         if val > 0:
             nombre = sym.replace("USDT", "")
             precios_txt += f"• {nombre}: ${val:,.2f}\n"
@@ -76,6 +74,15 @@ def bot_loop():
     for sym in TRACKED_SYMBOLS:
         if sym in initial_prices:
             last_prices[sym] = initial_prices[sym]
+
+    # Mensaje de prueba inmediato al arrancar
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        mensaje_inicio = "🤖 **¡Bot Director Pro Activo!** Estoy alerta 24/7 vigilando el Radar de Élite. 🚀"
+        requests.post(url, json={"chat_id": CHAT_ID, "text": mensaje_inicio, "parse_mode": "Markdown"})
+        print("Mensaje de inicio enviado a Telegram.")
+    except Exception as e:
+        print(f"Error enviando mensaje de inicio: {e}")
 
     while True:
         try:
@@ -109,7 +116,7 @@ def bot_loop():
             is_opening, razon = check_session_alert()
             if is_opening:
                 generar_reporte(f"APERTURA DE MERCADO EN 20 MIN", current_prices)
-                time.sleep(3600) # Descansar tras el aviso
+                time.sleep(3600)
 
             time.sleep(60)
         except Exception as e:
