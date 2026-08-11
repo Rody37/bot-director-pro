@@ -106,7 +106,7 @@ def bot_loop():
         print(f"Error en inicio del hilo: {e}")
 
     ultimo_reporte = time.time()
-    INTERVALO_REPORTE = 3600 
+    INTERVALO_REPORTE = 300 
 
     while True:
         try:
