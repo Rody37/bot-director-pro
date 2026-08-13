@@ -2,7 +2,7 @@ import os
 import threading
 import time
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import requests
 from flask import Flask
 
@@ -14,7 +14,7 @@ CHAT_ID = "8982812050"
 
 TRACKED_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BANANAUSDT", "HYPEUSDT", "TAOUSDT"]
 last_prices = {symbol: 0.0 for symbol in TRACKED_SYMBOLS}
-THRESHOLD = 0.008 # 0.8% de cambio para alerta de volatilidad
+THRESHOLD = 0.008 
 
 SECRET_VIBES = [
     "🧠 Mentalidad: El dinero se hace en la paciencia, no en la pantalla.",
@@ -29,9 +29,8 @@ def home():
     return "Bot Director Pro Smart Money Activo 24/7 🚀"
 
 def get_market_data(symbol):
-    """Obtiene el precio actual y calcula OB / FVG básico de las últimas velas de 15m"""
+    """Obtiene el precio actual y calcula OB / FVG de las últimas velas de 15m"""
     try:
-        # Petición a Binance para velas de 15 minutos (klines)
         url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=15m&limit=10"
         res = requests.get(url, timeout=5)
         data = res.json()
@@ -39,40 +38,38 @@ def get_market_data(symbol):
         if not data or len(data) < 5:
             return None, "N/A", "N/A", 0.0
 
-        current_price = float(data[-1][4]) # Precio de cierre de la última vela
+        current_price = float(data[-1][4])
         
-        # Lógica SMC Simplificada para las últimas velas cerradas
-        # Vela anterior (-2): O, H, L, C
         prev_candle = data[-2]
         p_open = float(prev_candle[1])
         p_high = float(prev_candle[2])
         p_low = float(prev_candle[3])
         p_close = float(prev_candle[4])
 
-        # Detectar Order Block básico (última vela contraria al movimiento fuerte)
         if p_close > p_open:
             ob_zone = f"🟢 OB Alcista: ${p_low:,.2f} - ${p_open:,.2f}"
         else:
             ob_zone = f"🔴 OB Bajista: ${p_open:,.2f} - ${p_high:,.2f}"
 
-        # Detectar FVG / Imbalance básico entre la vela -3 y la -1
-        c_prev = data[-3] # Dos velas atrás
+        c_prev = data[-3]
         cp_high = float(c_prev[2])
         cp_low = float(c_prev[3])
         
-        fvg_zone = "Sin FVG claro en 15m"
+        fvg_zone = "⚡ FVG: Sin desequilibrio activo"
         if p_low > cp_high:
-            fvg_zone = f"⚡ FVG Alcista (Imbalance): ${cp_high:,.2f} - ${p_low:,.2f}"
+            fvg_zone = f"⚡ FVG Alcista: ${cp_high:,.2f} - ${p_low:,.2f}"
         elif p_high < cp_low:
-            fvg_zone = f"⚡ FVG Bajista (Imbalance): ${p_high:,.2f} - ${cp_low:,.2f}"
+            fvg_zone = f"⚡ FVG Bajista: ${p_high:,.2f} - ${cp_low:,.2f}"
 
         return current_price, ob_zone, fvg_zone, current_price
     except Exception:
-        return None, "Error analizando OB", "Error analizando FVG", 0.0
+        return None, "Error OB", "Error FVG", 0.0
 
 def generar_reporte_smc(razon):
     try:
-        ahora = datetime.now(timezone.utc).strftime("%H:%M UTC")
+        # Hora local de Paraguay (UTC-4)
+        local_tz = timezone(timedelta(hours=-4))
+        ahora = datetime.now(local_tz).strftime("%d/%m/%Y - %H:%M (Py)")
         vibe_secreto = random.choice(SECRET_VIBES)
         
         reporte_detallado = ""
@@ -84,14 +81,18 @@ def generar_reporte_smc(razon):
             if precio:
                 current_prices_dict[sym] = val
                 reporte_detallado += f"📊 **{nombre}** (15m):\n  • Precio: ${precio:,.2f}\n  • {ob}\n  • {fvg}\n\n"
-            time.sleep(0.2) # Pausa corta para cuidar la API
+            time.sleep(0.2)
+
+        # Si por alguna razón el reporte detallado fallara en llenarse, evitamos mensaje vacío
+        if not reporte_detallado:
+            reporte_detallado = "⚠️ Sincronizando datos de mercado de Binance...\n\n"
 
         mensaje = (
             f"🎯 **¡Reporte de Francotirador, Rodrigo Sniper!**\n"
             f"🚨 **ESTADO SMC — {razon}**\n\n"
             f"⏰ *Hora:* {ahora}\n\n"
             f"{reporte_detallado}"
-            f"{vibe_secreto}\n\n"
+            f"💡 *Gestión:* {vibe_secreto}\n\n"
             f"🤖 *¡Ajusta tus rectángulos en TradingView!*"
         )
         
@@ -101,11 +102,11 @@ def generar_reporte_smc(razon):
             timeout=10
         )
         return current_prices_dict
-    except Exception:
+    except Exception as e:
+        print(f"Error generando reporte: {e}")
         return {}
 
 def bot_loop():
-    # Saludo inicial y primer escaneo de zonas SMC a los 5 segundos
     time.sleep(5)
     print("🤖 Lanzando escaneo inicial de Smart Money para Rodrigo Sniper...")
     global last_prices
@@ -115,15 +116,12 @@ def bot_loop():
 
     while True:
         try:
-            # Chequeo periódico de precios para volatilidad
             time.sleep(60)
-            
-            # Alerta de Apertura (00, 08, 13 UTC)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(timezone(timedelta(hours=-4)))
+            # Alerta de Apertura o momentos clave
             if now.hour in [0, 8, 13] and now.minute < 5:
-                generar_reporte_smc("APERTURA DE SESIÓN / NUEVAS ZONAS")
-                time.sleep(600) # Evitar spam
-                
+                generar_reporte_smc("REPORTE DE SESIÓN")
+                time.sleep(600)
         except Exception:
             time.sleep(60)
 
