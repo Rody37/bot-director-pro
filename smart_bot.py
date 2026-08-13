@@ -1,5 +1,4 @@
 import os
-import time
 from datetime import datetime, timezone, timedelta
 import requests
 from flask import Flask
@@ -13,7 +12,7 @@ TRACKED_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 @app.route("/")
 def home():
-    return "Bot Director Pro Activo 🚀"
+    return "Bot Director Pro Sniper - Activo y Despierto 24/7 🚀"
 
 def enviar_telegram(mensaje):
     try:
@@ -30,12 +29,13 @@ def get_price(symbol):
     except:
         return 0.0
 
-# NUEVO: Gatillo manual mediante ruta web (/reportar)
-@app.route("/reportar")
-def disparar_reporte_manual():
+# Esta es la ruta que el despertador externo va a visitar
+@app.route("/despertar")
+def despertar_bot():
     try:
         local_tz = timezone(timedelta(hours=-3))
         hora = datetime.now(local_tz).strftime("%H:%M hs")
+        fecha = datetime.now(local_tz).strftime("%d/%m/%Y")
         
         for sym in TRACKED_SYMBOLS:
             nombre = sym.replace("USDT", "")
@@ -43,21 +43,20 @@ def disparar_reporte_manual():
             
             if precio > 0:
                 mensaje = (
-                    f"📰 *{nombre} AHORA — {datetime.now(local_tz).strftime('%d/%m/%Y')} · {hora}*\n\n"
+                    f"📰 *{nombre} AHORA — {fecha} · {hora}*\n\n"
                     f"🔍 *Lo que está pasando ahora*\n"
                     f"El precio está en ~${precio:,.2f}, monitoreando reacción en zonas clave.\n\n"
                     f"🛡️ *Niveles a vigilar*\n"
                     f"🔵 Resistencias: ~${precio * 1.01:,.0f} · ~${precio * 1.02:,.0f}\n"
                     f"🔵 Soportes: ~${precio * 0.99:,.0f} · ~${precio * 0.98:,.0f}\n\n"
-                    f"🎯 *Análisis Sniper:* Reporte forzado manual."
+                    f"🎯 *Análisis Sniper:* Reporte automático de sesión."
                 )
                 enviar_telegram(mensaje)
-                time.sleep(2)
-        return "¡Reporte enviado con éxito a Telegram! 🚀"
+                requests.get("https://httpbin.org/delay/2") # Pequeña pausa de cortesía
+                
+        return "¡Reporte enviado con éxito por el despertador! 🚀"
     except Exception as e:
-        return f"Error al generar reporte: {e}"
+        return f"Error en el reporte: {e}"
 
 if __name__ == "__main__":
-    # Mensaje de inicio al desplegar
-    enviar_telegram("🤖 *Bot Director Pro: Sistema Sniper Iniciado y Web Activa*")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
