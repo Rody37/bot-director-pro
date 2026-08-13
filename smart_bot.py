@@ -16,24 +16,6 @@ TRACKED_SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 def home():
     return "Bot Director Pro Activo 🚀"
 
-def get_smc_data(symbol):
-    for i in range(3):
-        try:
-            url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=15m&limit=5"
-            res = requests.get(url, timeout=10)
-            data = res.json()
-            
-            p_open, p_high, p_low, p_close = float(data[-2][1]), float(data[-2][2]), float(data[-2][3]), float(data[-2][4])
-            ob = f"🟢 OB Alcista: ${p_low:,.0f}" if p_close > p_open else f"🔴 OB Bajista: ${p_high:,.0f}"
-            
-            cp_high, cp_low = float(data[-3][2]), float(data[-3][3])
-            fvg = "⚡ FVG: Activo" if (p_low > cp_high or p_high < cp_low) else "⚡ FVG: Sin imbalance"
-            
-            return float(data[-1][4]), ob, fvg
-        except:
-            time.sleep(2)
-    return 0.0, "OB: No disponible", "FVG: No disponible"
-
 def enviar_telegram(mensaje):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -41,8 +23,24 @@ def enviar_telegram(mensaje):
     except:
         pass
 
+def get_smc_data(symbol):
+    try:
+        url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=15m&limit=5"
+        res = requests.get(url, timeout=10)
+        data = res.json()
+        p_open, p_high, p_low, p_close = float(data[-2][1]), float(data[-2][2]), float(data[-2][3]), float(data[-2][4])
+        ob = f"🟢 OB Alcista: ${p_low:,.0f}" if p_close > p_open else f"🔴 OB Bajista: ${p_high:,.0f}"
+        cp_high, cp_low = float(data[-3][2]), float(data[-3][3])
+        fvg = "⚡ FVG: Activo" if (p_low > cp_high or p_high < cp_low) else "⚡ FVG: Sin imbalance"
+        return float(data[-1][4]), ob, fvg
+    except:
+        return 0.0, "OB: No disponible", "FVG: No disponible"
+
 def bot_loop():
-    time.sleep(10)
+    # DISPARO INICIAL
+    enviar_telegram("🤖 *Bot Director Pro: Sistema Sniper Iniciado y Blindado*")
+    time.sleep(5)
+    
     while True:
         try:
             local_tz = timezone(timedelta(hours=-3))
@@ -62,10 +60,10 @@ def bot_loop():
                         f"🛡️ *Niveles a vigilar*\n"
                         f"🔵 Resistencias: ${precio * 1.015:,.0f} · ${precio * 1.025:,.0f}\n"
                         f"🔵 Soportes: ${precio * 0.985:,.0f} · ${precio * 0.975:,.0f}\n\n"
-                        f"🎯 *Análisis Sniper:* Esperando confirmación institucional."
+                        f"🎯 *Análisis Sniper: Esperando confirmación institucional.*"
                     )
                     enviar_telegram(mensaje)
-                time.sleep(3) 
+                time.sleep(5) 
             
             time.sleep(3600)
         except Exception as e:
